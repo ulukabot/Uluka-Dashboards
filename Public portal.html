@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦉 Uluka Ultra — Public Dashboard</title>
+<link rel="icon" type="image/x-icon" href="UlukaUltrab.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: #050810; color: #c8d0e0; font-family: 'Rajdhani', sans-serif; padding: 20px; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,215,0,0.15); padding-bottom: 12px; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo img { width: 52px; height: 52px; border-radius: 50%; border: 1.5px solid #f0b429; box-shadow: 0 0 16px rgba(240,180,41,0.35); object-fit: cover; }
+  .logo-text h1 { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 22px; background: linear-gradient(135deg, #f0b429, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px; }
+  .logo-text span { font-size: 12px; letter-spacing: 3px; color: #6a7a9a; display: block; }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .live-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #4a9a5a; background: rgba(74,154,90,0.12); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(74,154,90,0.2); }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4a9a5a; animation: blink 1.2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  #clock { font-family: 'Share Tech Mono', monospace; font-size: 14px; color: #f0b429; letter-spacing: 1px; }
+  .section-title { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 16px; color: #ffd700; margin: 24px 0 12px 0; letter-spacing: 1px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 16px; }
+  .stat-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 18px 16px; }
+  .stat-card .stat-label { font-size: 12px; color: #6a7a9a; letter-spacing: 1px; }
+  .stat-card .stat-value { font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 700; margin: 6px 0 2px; color: #e0e8f0; }
+  .stat-card .stat-value.gold { color: #ffd700; }
+  .stat-card .stat-value.green { color: #4a9a5a; }
+  .stat-card .stat-value.red { color: #d94a4a; }
+  .stat-card .stat-value.cyan { color: #4ac4d4; }
+  .stat-card .stat-sub { font-size: 11px; color: #4a5a7a; }
+  .loading { display: flex; align-items: center; justify-content: center; gap: 12px; color: #6a7a9a; font-size: 14px; padding: 30px 0; }
+  .spinner { width: 20px; height: 20px; border: 2px solid rgba(240,180,41,0.15); border-top-color: #f0b429; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="logo">
+    <img src="https://i.postimg.cc/g0p8Bm4N/photo-6255798421759397584-x.jpg" 
+     alt="Uluka Ultra" 
+     style="height:48px; width:auto; border-radius:50%; filter:drop-shadow(0 0 12px rgba(240,180,41,0.3));">
+	<div class="logo-text">
+      <h1>ULUKA ULTRA</h1>
+      <span>PUBLIC INTELLIGENCE DASHBOARD</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>LIVE DATA</div>
+    <div id="clock">--:--:--</div>
+  </div>
+</header>
+<main>
+  <div class="section-title">📊 Portfolio Overview</div>
+  <div class="stat-grid" id="statGrid">
+    <div class="loading"><div class="spinner"></div>Loading data...</div>
+  </div>
+</main>
+<script>
+const RAILWAY_URL = 'https://uluka-backend-production.up.railway.app';
+
+function updateClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('clock').textContent =
+    `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} GMT`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function fmtNum(n) {
+  return Math.abs(parseFloat(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+async function fetchPublicStats() {
+  try {
+    const res = await fetch(`${RAILWAY_URL}/api/public/stats?_=${Date.now()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderStats(data);
+  } catch (err) {
+    document.getElementById('statGrid').innerHTML =
+      `<div class="loading" style="color:#d94a4a;">❌ Failed to load data: ${err.message}</div>`;
+  }
+}
+
+function renderStats(s) {
+  s = s || {};
+  const profitClass = s.totalNetProfit >= 0 ? 'green' : 'red';
+  const profitSign  = s.totalNetProfit >= 0 ? '+' : '';
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Active Clients</div>
+      <div class="stat-value gold">${s.activeClients || 0}</div>
+      <div class="stat-sub">Licensed accounts</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Net Profit</div>
+      <div class="stat-value ${profitClass}">${profitSign}$${fmtNum(s.totalNetProfit)}</div>
+      <div class="stat-sub">All clients combined</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Win Rate</div>
+      <div class="stat-value">${(s.avgWinRate||0).toFixed(1)}%</div>
+      <div class="stat-sub">Across all accounts</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Open Positions</div>
+      <div class="stat-value cyan">${s.openPositions || 0}</div>
+      <div class="stat-sub">Right now</div>
+    </div>
+  `;
+}
+
+fetchPublicStats();
+setInterval(fetchPublicStats, 300000);
+</script>
+</body>
+</html>

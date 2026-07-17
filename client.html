@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦉 Uluka Ultra — My Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  /* same as before – I'll include minimal styling */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: #050810; color: #c8d0e0; font-family: 'Rajdhani', sans-serif; padding: 20px; }
+  #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; }
+  .login-logo { font-size: 80px; margin-bottom: 16px; filter: drop-shadow(0 0 20px rgba(240,180,41,0.3)); }
+  .login-title { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 32px; background: linear-gradient(135deg, #f0b429, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 3px; }
+  .login-sub { font-size: 14px; color: #6a7a9a; letter-spacing: 4px; margin-bottom: 30px; }
+  .login-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 30px 35px; max-width: 380px; width: 100%; }
+  .field-label { font-size: 12px; color: #8a9aaa; letter-spacing: 1px; margin: 12px 0 4px; }
+  .field-input { width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: #e0e8f0; font-size: 14px; font-family: 'Rajdhani', sans-serif; transition: 0.3s; }
+  .field-input:focus { outline: none; border-color: #f0b429; background: rgba(255,255,255,0.06); }
+  .login-btn { width: 100%; padding: 12px; margin-top: 20px; background: linear-gradient(135deg, #f0b429, #d49a1a); border: none; border-radius: 8px; font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 14px; color: #050810; cursor: pointer; transition: 0.3s; letter-spacing: 1px; }
+  .login-btn:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(240,180,41,0.3); }
+  #loginError { color: #d94a4a; font-size: 13px; margin-top: 12px; text-align: center; }
+  #dashScreen { display: none; }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,215,0,0.15); padding-bottom: 12px; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo .owl { font-size: 48px; }
+  .logo-text h1 { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 20px; background: linear-gradient(135deg, #f0b429, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .logo-text span { font-size: 11px; letter-spacing: 3px; color: #6a7a9a; display: block; }
+  .header-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  #clientNameBadge { font-size: 14px; color: #aab4c8; background: rgba(255,255,255,0.04); padding: 4px 12px; border-radius: 20px; }
+  .live-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4a9a5a; background: rgba(74,154,90,0.12); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(74,154,90,0.2); }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4a9a5a; animation: blink 1.2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  #clock { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: #f0b429; letter-spacing: 1px; }
+  .logout-btn { background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #8a9aaa; padding: 4px 12px; border-radius: 16px; font-size: 12px; cursor: pointer; transition: 0.3s; font-family: 'Rajdhani', sans-serif; }
+  .logout-btn:hover { border-color: #d94a4a; color: #d94a4a; }
+  .section-title { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 16px; color: #ffd700; margin: 24px 0 12px 0; letter-spacing: 1px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 14px; margin-bottom: 20px; }
+  .stat-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; }
+  .stat-card .stat-label { font-size: 11px; color: #6a7a9a; letter-spacing: 1px; }
+  .stat-card .stat-value { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 700; margin: 6px 0 2px; color: #e0e8f0; }
+  .stat-card .stat-value.gold { color: #ffd700; }
+  .stat-card .stat-value.green { color: #4a9a5a; }
+  .stat-card .stat-value.red { color: #d94a4a; }
+  .stat-card .stat-sub { font-size: 10px; color: #4a5a7a; }
+  .panel { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; min-height: 100px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width:700px){ .two-col{grid-template-columns:1fr;} }
+  .loading { display: flex; align-items: center; justify-content: center; gap: 12px; color: #6a7a9a; font-size: 13px; padding: 16px 0; }
+  .spinner { width: 18px; height: 18px; border: 2px solid rgba(240,180,41,0.15); border-top-color: #f0b429; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  #licenceBanner { background: rgba(240,180,41,0.08); border: 1px solid rgba(240,180,41,0.2); border-radius: 8px; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .position-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; }
+  .trade-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
+  .trade-row .profit { color: #4a9a5a; }
+  .trade-row .loss { color: #d94a4a; }
+  canvas#eqCanvas { width: 100%; height: 180px; background: rgba(255,255,255,0.02); border-radius: 8px; }
+</style>
+</head>
+<body>
+<!-- Login Screen -->
+<div id="loginScreen">
+  <div class="login-logo">
+  <img src="https://i.postimg.cc/g0p8Bm4N/photo-6255798421759397584-x.jpg?_=123456" 
+     alt="Uluka Ultra" 
+     style="height:48px; width:auto; border-radius:50%; filter:drop-shadow(0 0 12px rgba(240,180,41,0.3));">
+  <div class="login-title">ULUKA ULTRA</div>
+  <div class="login-sub">CLIENT PERFORMANCE PORTAL</div>
+  <div class="login-card">
+    <div class="field-label">MT5 Account ID</div>
+    <input class="field-input" id="accountIdInput" type="text" placeholder="e.g. 12345678">
+    <div class="field-label">Licence Key</div>
+    <input class="field-input" id="licenceKeyInput" type="password" placeholder="Your licence key">
+    <button class="login-btn" id="loginBtn">🔓 ACCESS MY DASHBOARD</button>
+    <div id="loginError"></div>
+  </div>
+</div>
+
+<!-- Dashboard Screen -->
+<div id="dashScreen">
+  <header class="header">
+    <div class="logo">
+      <img src="https://i.postimg.cc/g0p8Bm4N/photo-6255798421759397584-x.jpg?_=123456" 
+     alt="Uluka Ultra" 
+     style="height:48px; width:auto; border-radius:50%; filter:drop-shadow(0 0 12px rgba(240,180,41,0.3));">
+      <div class="logo-text"><h1>ULUKA ULTRA</h1><span>MY PERFORMANCE PORTAL</span></div>
+    </div>
+    <div class="header-right">
+      <div id="clientNameBadge">👤 <span id="clientNameTxt">Loading...</span></div>
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <div id="clock">--:--:--</div>
+      <button class="logout-btn" onclick="doLogout()">⏏ LOGOUT</button>
+    </div>
+  </header>
+  <main>
+    <div id="licenceBanner">
+      <span id="licenceInfo">⏳ Checking licence...</span>
+      <span id="licenceExpiry"></span>
+    </div>
+    <div class="section-title">📊 Account Overview</div>
+    <div class="stat-grid" id="statGrid"><div class="loading"><div class="spinner"></div>Loading stats...</div></div>
+    <div class="section-title">📈 Equity Curve</div>
+    <div class="panel"><canvas id="eqCanvas" height="180"></canvas></div>
+    <div class="two-col">
+      <div><div class="section-title">🟢 Open Positions</div><div class="panel"><div id="openPositions"><div class="loading"><div class="spinner"></div></div></div></div></div>
+      <div><div class="section-title">📅 Trade History</div><div class="panel"><div id="tradeHistory"><div class="loading"><div class="spinner"></div></div></div></div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const RAILWAY_URL = 'https://uluka-backend-production.up.railway.app';
+let g_accountId = '', g_licenceKey = '', g_clientData = null;
+let refreshInterval = null;
+
+function updateClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('clock').textContent =
+    `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} GMT`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function fmtNum(n) {
+  return Math.abs(parseFloat(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+// Attach login event with addEventListener
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+
+async function doLogin() {
+  const accIdStr = document.getElementById('accountIdInput').value.trim();
+  const licKey = document.getElementById('licenceKeyInput').value.trim();
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  errEl.textContent = '';
+  if (!accIdStr || !licKey) { errEl.textContent = '⚠ Please enter both Account ID and Licence Key'; return; }
+  btn.disabled = true;
+  btn.textContent = '⏳ VERIFYING...';
+
+  const accIdParsed = parseInt(accIdStr, 10);
+
+  try {
+    const res = await fetch(`${RAILWAY_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account: accIdParsed, licence: licKey })
+    });
+    const result = await res.json();
+    if (result && result.ok) {
+      g_accountId = accIdStr;
+      g_licenceKey = licKey;
+      g_clientData = result;
+      showDashboard(result);
+    } else {
+      errEl.textContent = '❌ ' + (result.error || 'Verification failed. Check your credentials.');
+    }
+  } catch (e) {
+    errEl.textContent = '❌ Connection error. Please try again.';
+  }
+  btn.disabled = false;
+  btn.textContent = '🔓 ACCESS MY DASHBOARD';
+}
+
+function doLogout() {
+  g_accountId = ''; g_licenceKey = ''; g_clientData = null;
+  document.getElementById('dashScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  if (refreshInterval) clearInterval(refreshInterval);
+}
+
+async function showDashboard(loginData) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('dashScreen').style.display = 'block';
+  document.getElementById('clientNameTxt').textContent = loginData.clientName || g_accountId;
+  renderLicenceBanner(loginData.licence);
+  await fetchClientData();
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(fetchClientData, 180000);
+}
+
+function renderLicenceBanner(lic) {
+  const info = document.getElementById('licenceInfo');
+  const expiry = document.getElementById('licenceExpiry');
+  if (lic && lic.status === 'ACTIVE') {
+    info.textContent = '✅ Licence Active';
+    info.style.color = '#4a9a5a';
+    expiry.textContent = `Expires: ${lic.expiryDate || 'N/A'}`;
+  } else {
+    info.textContent = '⚠️ Licence Expired or Invalid';
+    info.style.color = '#d94a4a';
+    expiry.textContent = '';
+  }
+}
+
+async function fetchClientData() {
+  try {
+    const [billingRes, positionsRes, tradesRes] = await Promise.all([
+      fetch(`${RAILWAY_URL}/api/billing/${g_accountId}`),
+      fetch(`${RAILWAY_URL}/api/positions/${g_accountId}`),
+      fetch(`${RAILWAY_URL}/api/trades/${g_accountId}?limit=50`)
+    ]);
+    const billing = await billingRes.json();
+    const positions = await positionsRes.json();
+    const trades = await tradesRes.json();
+    const data = { stats: billing, openPositions: positions, trades: trades };
+    renderStats(data.stats);
+    renderEquityCurve(data.trades, data.stats.current_balance);
+    renderOpenPositions(data.openPositions);
+    renderTradeHistory(data.trades);
+  } catch (e) {
+    console.error('Client data fetch error:', e);
+    document.querySelectorAll('.loading').forEach(el => el.innerHTML = `<span style="color:#d94a4a;">⚠️ ${e.message}</span>`);
+  }
+}
+
+function renderStats(s) {
+  const profit = parseFloat(s.net_profit) || 0;
+  const profitClass = profit >= 0 ? 'green' : 'red';
+  const sign = profit >= 0 ? '+' : '';
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Current Balance</div><div class="stat-value gold">$${fmtNum(s.current_balance)}</div><div class="stat-sub">As of now</div></div>
+    <div class="stat-card"><div class="stat-label">Net Profit</div><div class="stat-value ${profitClass}">${sign}$${fmtNum(profit)}</div><div class="stat-sub">All time</div></div>
+    <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value">${(s.win_rate||0).toFixed(1)}%</div><div class="stat-sub">Last 100 trades</div></div>
+    <div class="stat-card"><div class="stat-label">Total Trades</div><div class="stat-value">${s.total_trades||0}</div><div class="stat-sub">Lifetime</div></div>
+  `;
+}
+
+function renderEquityCurve(trades, initialBalance) {
+  const canvas = document.getElementById('eqCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.parentElement.clientWidth || 600;
+  const h = canvas.height;
+  canvas.width = w;
+  canvas.height = h;
+  ctx.clearRect(0, 0, w, h);
+  if (!trades || trades.length === 0) {
+    ctx.fillStyle = '#6a7a9a';
+    ctx.font = '14px Rajdhani';
+    ctx.textAlign = 'center';
+    ctx.fillText('No trade data', w/2, h/2);
+    return;
+  }
+  let equity = parseFloat(initialBalance) || 0;
+  const points = [{x:0, y:equity}];
+  trades.sort((a,b) => new Date(a.time) - new Date(b.time));
+  trades.forEach(t => {
+    equity += parseFloat(t.pnl) || 0;
+    points.push({x: points.length, y: equity});
+  });
+  const padding = 20;
+  const minY = Math.min(...points.map(p => p.y)) * 0.95;
+  const maxY = Math.max(...points.map(p => p.y)) * 1.05;
+  const rangeY = maxY - minY || 1;
+  const scaleX = (w - 2*padding) / (points.length - 1 || 1);
+  const scaleY = (h - 2*padding) / rangeY;
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = padding + i * scaleX;
+    const y = h - padding - (p.y - minY) * scaleY;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = '#f0b429';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  const last = points[points.length-1];
+  const lastX = padding + (points.length-1) * scaleX;
+  const lastY = h - padding - (last.y - minY) * scaleY;
+  ctx.lineTo(lastX, h - padding);
+  ctx.lineTo(padding, h - padding);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, padding, 0, h-padding);
+  grad.addColorStop(0, 'rgba(240,180,41,0.3)');
+  grad.addColorStop(1, 'rgba(240,180,41,0.0)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+}
+
+function renderOpenPositions(positions) {
+  let html = '';
+  if (!positions || positions.length === 0) {
+    html = '<div style="color:#6a7a9a;padding:12px;">No open positions.</div>';
+  } else {
+    positions.forEach(p => {
+      const profit = parseFloat(p.floatingPnl) || 0;
+      const cls = profit >= 0 ? 'profit' : 'loss';
+      html += `
+        <div class="position-item">
+          <span>${p.symbol} (${p.direction}) ${p.lot}</span>
+          <span style="color:${profit>=0?'#4a9a5a':'#d94a4a'}">${profit >= 0 ? '+' : ''}$${fmtNum(profit)}</span>
+        </div>
+      `;
+    });
+  }
+  document.getElementById('openPositions').innerHTML = html;
+}
+
+function renderTradeHistory(trades) {
+  if (!trades || trades.length === 0) {
+    document.getElementById('tradeHistory').innerHTML = '<div style="color:#6a7a9a;padding:12px;">No trades found.</div>';
+    return;
+  }
+  const sorted = trades.slice().sort((a,b) => new Date(b.time) - new Date(a.time));
+  const recent = sorted.slice(0, 20);
+  let html = '';
+  recent.forEach(t => {
+    const profit = parseFloat(t.pnl) || 0;
+    const cls = profit >= 0 ? 'profit' : 'loss';
+    const time = new Date(t.time).toLocaleString();
+    html += `
+      <div class="trade-row">
+        <span>${t.symbol} ${t.action} ${t.lot}</span>
+        <span>${time}</span>
+        <span class="${cls}">${profit >= 0 ? '+' : ''}$${fmtNum(profit)}</span>
+      </div>
+    `;
+  });
+  document.getElementById('tradeHistory').innerHTML = html;
+}
+</script>
+</body>
+</html>

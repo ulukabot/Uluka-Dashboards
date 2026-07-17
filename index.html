@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Uluka Ultra · Portal</title>
+    <script>
+        // ============================================================
+        // Your live Netlify dashboard URLs
+        const DASHBOARDS = [
+    { id: 'client', label: 'Client Portal', icon: '👤', url: '/client.html' },
+    { id: 'admin',  label: 'Admin Panel',   icon: '⚙️', url: '/admin.html' },
+    { id: 'public', label: 'Public Dashboard', icon: '🌍', url: '/public.html' }
+];
+    </script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html, body { width:100%; height:100%; overflow:hidden; background:#050810; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .app { display:flex; flex-direction:column; height:100vh; width:100vw; }
+        .navbar { display:flex; align-items:center; gap:6px; padding:8px 20px; background:rgba(5,8,16,0.92); backdrop-filter:blur(12px); border-bottom:1px solid rgba(255,215,0,0.12); flex-shrink:0; z-index:10; flex-wrap:wrap; min-height:56px; }
+        .brand { display:flex; align-items:center; gap:10px; margin-right:24px; font-weight:600; font-size:16px; color:#f0d070; letter-spacing:0.5px; white-space:nowrap; }
+        .brand .owl { font-size:26px; filter:drop-shadow(0 0 6px rgba(240,180,41,0.3)); }
+        .brand span { background:linear-gradient(135deg, #f0b429, #ffd700); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .nav-tabs { display:flex; gap:4px; flex-wrap:wrap; flex:1; }
+        .nav-tab { display:flex; align-items:center; gap:6px; padding:6px 16px; border-radius:8px; border:none; background:transparent; color:#6a7a9a; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.2s ease; white-space:nowrap; font-family:inherit; }
+        .nav-tab .icon { font-size:16px; }
+        .nav-tab:hover { background:rgba(255,215,0,0.06); color:#c8d0e0; }
+        .nav-tab.active { background:rgba(255,215,0,0.12); color:#ffd700; box-shadow:inset 0 1px 0 rgba(255,215,0,0.15); }
+        .nav-tab.active .icon { filter:drop-shadow(0 0 4px rgba(255,215,0,0.3)); }
+        .nav-status { font-size:11px; color:#3a4a6a; letter-spacing:0.3px; margin-left:auto; padding-left:12px; border-left:1px solid rgba(255,255,255,0.04); display:flex; align-items:center; gap:8px; }
+        .status-dot { width:6px; height:6px; border-radius:50%; background:#2a5a3a; display:inline-block; transition:background 0.3s; }
+        .status-dot.loading { background:#f0b429; animation:blink 0.8s ease-in-out infinite; }
+        .status-dot.error { background:#c0392b; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+        .iframe-wrapper { flex:1; position:relative; background:#050810; min-height:0; }
+        .iframe-wrapper iframe { width:100%; height:100%; border:none; display:block; background:#050810; }
+        .loader-overlay { position:absolute; inset:0; background:#050810; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; z-index:20; transition:opacity 0.45s ease, visibility 0.45s ease; pointer-events:none; }
+        .loader-overlay.hidden { opacity:0; visibility:hidden; }
+        .loader-overlay .big-icon { font-size:48px; animation:pulse 2s ease-in-out infinite; }
+        @keyframes pulse { 0%,100%{filter:drop-shadow(0 0 8px rgba(240,180,41,0.25));} 50%{filter:drop-shadow(0 0 28px rgba(255,215,0,0.45));} }
+        .loader-overlay .label { font-family:'Courier New', monospace; font-size:11px; color:#4a5a7a; letter-spacing:3px; text-transform:uppercase; }
+        .loader-overlay .bar { width:160px; height:2px; background:#0d1f3c; border-radius:2px; overflow:hidden; }
+        .loader-overlay .bar-fill { height:100%; width:0%; background:linear-gradient(90deg, #f0b429, #ffd700); animation:load 2s ease forwards; }
+        @keyframes load { to { width:100%; } }
+        .loader-overlay .sub { font-size:9px; color:#2a3a5a; letter-spacing:1px; margin-top:2px; }
+        .loader-overlay .error-msg { color:#e74c3c; font-size:13px; letter-spacing:0.5px; margin-top:4px; display:none; }
+        .loader-overlay .error-msg.show { display:block; }
+        .loader-overlay .retry-btn { margin-top:8px; padding:6px 20px; border-radius:20px; border:1px solid rgba(255,215,0,0.2); background:transparent; color:#f0b429; font-size:12px; cursor:pointer; transition:all 0.2s; display:none; font-family:inherit; }
+        .loader-overlay .retry-btn.show { display:inline-block; }
+        .loader-overlay .retry-btn:hover { background:rgba(255,215,0,0.08); border-color:rgba(255,215,0,0.4); }
+        @media (max-width:700px) { .navbar { padding:6px 12px; gap:4px; } .brand { margin-right:10px; font-size:14px; } .brand .owl { font-size:20px; } .nav-tab { padding:4px 10px; font-size:12px; } .nav-tab .icon { font-size:14px; } .nav-status { font-size:10px; padding-left:8px; margin-left:4px; } }
+        @media (max-width:480px) { .nav-tabs { gap:2px; } .nav-tab { padding:3px 8px; font-size:11px; } .nav-tab .icon { font-size:12px; } .brand span { font-size:12px; } .loader-overlay .big-icon { font-size:36px; } .loader-overlay .bar { width:120px; } }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <nav class="navbar" id="navbar">
+            <div class="brand">
+               <img src="https://i.postimg.cc/g0p8Bm4N/photo-6255798421759397584-x.jpg?_=123456" 
+     alt="Uluka Ultra" 
+     style="height:48px; width:auto; border-radius:50%; filter:drop-shadow(0 0 12px rgba(240,180,41,0.3));">
+                <span>Uluka Ultra</span>
+            </div>
+            <div class="nav-tabs" id="navTabs"></div>
+            <div class="nav-status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusLabel">Ready</span>
+            </div>
+        </nav>
+        <div class="iframe-wrapper" id="wrapper">
+            <iframe id="portal" allow="fullscreen"></iframe>
+            <div class="loader-overlay" id="loader">
+                <div class="big-icon" id="loaderIcon">🦉</div>
+                <div class="label" id="loaderLabel">LOADING</div>
+                <div class="bar"><div class="bar-fill"></div></div>
+                <div class="sub" id="loaderSub">please wait…</div>
+                <div class="error-msg" id="errorMsg">⚠️ Failed to load dashboard</div>
+                <button class="retry-btn" id="retryBtn">↻ Retry</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const portal = document.getElementById('portal');
+        const loader = document.getElementById('loader');
+        const loaderIcon = document.getElementById('loaderIcon');
+        const loaderLabel = document.getElementById('loaderLabel');
+        const loaderSub = document.getElementById('loaderSub');
+        const errorMsg = document.getElementById('errorMsg');
+        const retryBtn = document.getElementById('retryBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusLabel = document.getElementById('statusLabel');
+        const navTabs = document.getElementById('navTabs');
+
+        let currentDashboardId = DEFAULT_DASHBOARD;
+        let loadTimeout = null;
+
+        function renderNav() {
+            navTabs.innerHTML = '';
+            DASHBOARDS.forEach(d => {
+                const btn = document.createElement('button');
+                btn.className = 'nav-tab' + (d.id === currentDashboardId ? ' active' : '');
+                btn.dataset.id = d.id;
+                btn.innerHTML = `<span class="icon">${d.icon}</span> ${d.label}`;
+                btn.addEventListener('click', () => switchDashboard(d.id));
+                navTabs.appendChild(btn);
+            });
+        }
+
+        function switchDashboard(id) {
+            const dashboard = DASHBOARDS.find(d => d.id === id);
+            if (!dashboard) return;
+            if (id === currentDashboardId && portal.src === dashboard.url) {
+                reloadDashboard();
+                return;
+            }
+            currentDashboardId = id;
+            renderNav();
+            loadDashboard(dashboard);
+        }
+
+        function loadDashboard(dashboard) {
+            errorMsg.classList.remove('show');
+            retryBtn.classList.remove('show');
+            loader.classList.remove('hidden');
+            loaderIcon.textContent = dashboard.icon || '🦉';
+            loaderLabel.textContent = dashboard.label.toUpperCase();
+            loaderSub.textContent = 'connecting…';
+            statusDot.className = 'status-dot loading';
+            statusLabel.textContent = 'Loading…';
+            if (loadTimeout) clearTimeout(loadTimeout);
+            portal.src = dashboard.url;
+            loadTimeout = setTimeout(() => {
+                if (!loader.classList.contains('hidden')) {
+                    showError('Timeout — server took too long to respond');
+                }
+            }, 20000);
+        }
+
+        function reloadDashboard() {
+            const dashboard = DASHBOARDS.find(d => d.id === currentDashboardId);
+            if (dashboard) {
+                portal.src = 'about:blank';
+                setTimeout(() => { portal.src = dashboard.url; }, 80);
+                loader.classList.remove('hidden');
+                loaderIcon.textContent = dashboard.icon || '🦉';
+                loaderLabel.textContent = dashboard.label.toUpperCase();
+                loaderSub.textContent = 'reloading…';
+                statusDot.className = 'status-dot loading';
+                statusLabel.textContent = 'Reloading…';
+                errorMsg.classList.remove('show');
+                retryBtn.classList.remove('show');
+                if (loadTimeout) clearTimeout(loadTimeout);
+                loadTimeout = setTimeout(() => {
+                    if (!loader.classList.contains('hidden')) showError('Timeout — server took too long');
+                }, 20000);
+            }
+        }
+
+        function showError(msg) {
+            statusDot.className = 'status-dot error';
+            statusLabel.textContent = 'Error';
+            loaderSub.textContent = '⚠️ connection issue';
+            errorMsg.textContent = '⚠️ ' + msg;
+            errorMsg.classList.add('show');
+            retryBtn.classList.add('show');
+            if (loadTimeout) clearTimeout(loadTimeout);
+        }
+
+        portal.onload = function() {
+            loader.classList.add('hidden');
+            statusDot.className = 'status-dot';
+            statusLabel.textContent = 'Connected';
+            if (loadTimeout) clearTimeout(loadTimeout);
+            errorMsg.classList.remove('show');
+            retryBtn.classList.remove('show');
+            renderNav();
+        };
+
+        portal.onerror = function() { showError('Failed to load — check your network or URL'); };
+
+        retryBtn.addEventListener('click', function() {
+            const dashboard = DASHBOARDS.find(d => d.id === currentDashboardId);
+            if (dashboard) {
+                loader.classList.remove('hidden');
+                loaderIcon.textContent = dashboard.icon || '🦉';
+                loaderLabel.textContent = dashboard.label.toUpperCase();
+                loaderSub.textContent = 'retrying…';
+                errorMsg.classList.remove('show');
+                retryBtn.classList.remove('show');
+                statusDot.className = 'status-dot loading';
+                statusLabel.textContent = 'Retrying…';
+                portal.src = 'about:blank';
+                setTimeout(() => { portal.src = dashboard.url; }, 120);
+                if (loadTimeout) clearTimeout(loadTimeout);
+                loadTimeout = setTimeout(() => {
+                    if (!loader.classList.contains('hidden')) showError('Timeout — server took too long');
+                }, 20000);
+            }
+        });
+
+        function init() {
+            renderNav();
+            const defaultDash = DASHBOARDS.find(d => d.id === DEFAULT_DASHBOARD) || DASHBOARDS[0];
+            if (defaultDash) {
+                currentDashboardId = defaultDash.id;
+                portal.src = defaultDash.url;
+                loader.classList.remove('hidden');
+                loaderIcon.textContent = defaultDash.icon || '🦉';
+                loaderLabel.textContent = defaultDash.label.toUpperCase();
+                loaderSub.textContent = 'initializing…';
+                statusDot.className = 'status-dot loading';
+                statusLabel.textContent = 'Loading…';
+                loadTimeout = setTimeout(() => {
+                    if (!loader.classList.contains('hidden')) showError('Timeout — server took too long');
+                }, 20000);
+            }
+        }
+        init();
+        window.switchDashboard = switchDashboard;
+        window.reloadDashboard = reloadDashboard;
+    </script>
+</body>
+</html>
