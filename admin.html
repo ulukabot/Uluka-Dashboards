@@ -92,7 +92,17 @@
 </main>
 <script>
 const RAILWAY_URL = 'https://uluka-backend-production.up.railway.app';
-const ADMIN_SECRET = 'Sanica@7';
+// ─── Admin password protection ──────────────────────────────
+const ADMIN_SECRET = 'Sanica@7'; // same as your Railway env
+const userPassword = prompt('🔐 Enter admin password:');
+if (userPassword !== ADMIN_SECRET) {
+    document.body.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#050810;color:#d94a4a;font-family:'Rajdhani',sans-serif;font-size:24px;">
+            ⛔ Unauthorized. Please refresh and enter the correct password.
+        </div>
+    `;
+    throw new Error('Unauthorized');
+}
 
 function updateClock() {
   const now = new Date();
