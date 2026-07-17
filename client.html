@@ -24,7 +24,7 @@
   #dashScreen { display: none; }
   .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,215,0,0.15); padding-bottom: 12px; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
   .logo { display: flex; align-items: center; gap: 14px; }
-  .logo .owl { font-size: 48px; }
+  .logo img { height:48px; width:auto; border-radius:50%; filter:drop-shadow(0 0 12px rgba(240,180,41,0.3)); }
   .logo-text h1 { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 20px; background: linear-gradient(135deg, #f0b429, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .logo-text span { font-size: 11px; letter-spacing: 3px; color: #6a7a9a; display: block; }
   .header-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -61,10 +61,7 @@
 <body>
 <!-- Login Screen -->
 <div id="loginScreen">
-  <div class="login-logo">
-  <img src="https://i.postimg.cc/g0p8Bm4N/photo-6255798421759397584-x.jpg?_=123456" 
-     alt="Uluka Ultra" 
-     style="height:48px; width:auto; border-radius:50%; filter:drop-shadow(0 0 12px rgba(240,180,41,0.3));">
+  <div class="login-logo">🦉</div>
   <div class="login-title">ULUKA ULTRA</div>
   <div class="login-sub">CLIENT PERFORMANCE PORTAL</div>
   <div class="login-card">
@@ -81,9 +78,7 @@
 <div id="dashScreen">
   <header class="header">
     <div class="logo">
-      <img src="https://i.postimg.cc/g0p8Bm4N/photo-6255798421759397584-x.jpg?_=123456" 
-     alt="Uluka Ultra" 
-     style="height:48px; width:auto; border-radius:50%; filter:drop-shadow(0 0 12px rgba(240,180,41,0.3));">
+      <img src="https://i.postimg.cc/g0p8Bm4N/photo-6255798421759397584-x.jpg" alt="Uluka Ultra">
       <div class="logo-text"><h1>ULUKA ULTRA</h1><span>MY PERFORMANCE PORTAL</span></div>
     </div>
     <div class="header-right">
@@ -127,7 +122,6 @@ function fmtNum(n) {
   return Math.abs(parseFloat(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
-// Attach login event with addEventListener
 document.getElementById('loginBtn').addEventListener('click', doLogin);
 
 async function doLogin() {
@@ -139,9 +133,7 @@ async function doLogin() {
   if (!accIdStr || !licKey) { errEl.textContent = '⚠ Please enter both Account ID and Licence Key'; return; }
   btn.disabled = true;
   btn.textContent = '⏳ VERIFYING...';
-
   const accIdParsed = parseInt(accIdStr, 10);
-
   try {
     const res = await fetch(`${RAILWAY_URL}/api/login`, {
       method: 'POST',
@@ -155,10 +147,10 @@ async function doLogin() {
       g_clientData = result;
       showDashboard(result);
     } else {
-      errEl.textContent = '❌ ' + (result.error || 'Verification failed. Check your credentials.');
+      errEl.textContent = '❌ ' + (result.error || 'Verification failed.');
     }
   } catch (e) {
-    errEl.textContent = '❌ Connection error. Please try again.';
+    errEl.textContent = '❌ Connection error.';
   }
   btn.disabled = false;
   btn.textContent = '🔓 ACCESS MY DASHBOARD';
@@ -197,19 +189,19 @@ function renderLicenceBanner(lic) {
 
 async function fetchClientData() {
   try {
+    // 🚀 CACHE BUSTING: added ?_=${Date.now()} to each URL
     const [billingRes, positionsRes, tradesRes] = await Promise.all([
-      fetch(`${RAILWAY_URL}/api/billing/${g_accountId}`),
-      fetch(`${RAILWAY_URL}/api/positions/${g_accountId}`),
-      fetch(`${RAILWAY_URL}/api/trades/${g_accountId}?limit=50`)
+      fetch(`${RAILWAY_URL}/api/billing/${g_accountId}?_=${Date.now()}`),
+      fetch(`${RAILWAY_URL}/api/positions/${g_accountId}?_=${Date.now()}`),
+      fetch(`${RAILWAY_URL}/api/trades/${g_accountId}?limit=50&_=${Date.now()}`)
     ]);
     const billing = await billingRes.json();
     const positions = await positionsRes.json();
     const trades = await tradesRes.json();
-    const data = { stats: billing, openPositions: positions, trades: trades };
-    renderStats(data.stats);
-    renderEquityCurve(data.trades, data.stats.current_balance);
-    renderOpenPositions(data.openPositions);
-    renderTradeHistory(data.trades);
+    renderStats(billing);
+    renderEquityCurve(trades, billing.current_balance);
+    renderOpenPositions(positions);
+    renderTradeHistory(trades);
   } catch (e) {
     console.error('Client data fetch error:', e);
     document.querySelectorAll('.loading').forEach(el => el.innerHTML = `<span style="color:#d94a4a;">⚠️ ${e.message}</span>`);
@@ -286,7 +278,6 @@ function renderOpenPositions(positions) {
   } else {
     positions.forEach(p => {
       const profit = parseFloat(p.floatingPnl) || 0;
-      const cls = profit >= 0 ? 'profit' : 'loss';
       html += `
         <div class="position-item">
           <span>${p.symbol} (${p.direction}) ${p.lot}</span>
