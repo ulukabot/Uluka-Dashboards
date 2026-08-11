@@ -7,6 +7,8 @@
 <link rel="icon" type="image/x-icon" href="UlukaUltrab.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background: #050810; color: #c8d0e0; font-family: 'Rajdhani', sans-serif; padding: 20px; }
@@ -30,18 +32,25 @@
   .stat-card .stat-value.red { color: #d94a4a; }
   .stat-card .stat-value.cyan { color: #4ac4d4; }
   .stat-card .stat-sub { font-size: 11px; color: #4a5a7a; }
+  .panel { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; margin-bottom: 8px; }
   .loading { display: flex; align-items: center; justify-content: center; gap: 12px; color: #6a7a9a; font-size: 14px; padding: 30px 0; }
   .spinner { width: 20px; height: 20px; border: 2px solid rgba(240,180,41,0.15); border-top-color: #f0b429; border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to{transform:rotate(360deg)} }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; padding: 8px 8px; color: #4a5a7a; border-bottom: 1px solid #1a2a44; font-weight: 500; }
+  tbody td { padding: 6px 8px; border-bottom: 1px solid #0d1f3c; color: #b0c4de; }
+  .profit { color: #39ff14; font-weight: 700; }
+  .loss { color: #ff6b6b; font-weight: 700; }
+  .type-buy { color: #00d4ff; font-weight: 700; }
+  .type-sell { color: #ff6b6b; font-weight: 700; }
+  .no-data { padding: 20px; text-align: center; color: #4a5a7a; }
 </style>
 </head>
 <body>
 <header class="header">
   <div class="logo">
-    <img src="https://i.postimg.cc/g0p8Bm4N/photo-6255798421759397584-x.jpg" 
-     alt="Uluka Ultra" 
-     style="height:48px; width:auto; border-radius:50%; filter:drop-shadow(0 0 12px rgba(240,180,41,0.3));">
-	<div class="logo-text">
+    <img src="https://i.postimg.cc/g0p8Bm4N/photo-6255798421759397584-x.jpg" alt="Uluka Ultra" style="height:48px; width:auto; border-radius:50%; filter:drop-shadow(0 0 12px rgba(240,180,41,0.3));">
+    <div class="logo-text">
       <h1>ULUKA ULTRA</h1>
       <span>PUBLIC INTELLIGENCE DASHBOARD</span>
     </div>
@@ -52,14 +61,30 @@
   </div>
 </header>
 <main>
+  <!-- Stats Grid -->
   <div class="section-title">📊 Portfolio Overview</div>
   <div class="stat-grid" id="statGrid">
     <div class="loading"><div class="spinner"></div>Loading data...</div>
   </div>
+
+  <!-- Equity Curve -->
+  <div class="section-title">📈 Equity Curve</div>
+  <div class="panel" id="equityContainer">
+    <div class="loading"><div class="spinner"></div>Loading equity data...</div>
+  </div>
+
+  <!-- Recent Trades -->
+  <div class="section-title">⚡ Recent Trades</div>
+  <div class="panel" id="tradesContainer">
+    <div class="loading"><div class="spinner"></div>Loading trades...</div>
+  </div>
 </main>
+
 <script>
 const RAILWAY_URL = 'https://uluka-backend-production.up.railway.app';
+let equityChart = null;
 
+// ---- Clock ----
 function updateClock() {
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
@@ -69,10 +94,12 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
+// ---- Helpers ----
 function fmtNum(n) {
   return Math.abs(parseFloat(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
+// ---- Stats ----
 async function fetchPublicStats() {
   try {
     const res = await fetch(`${RAILWAY_URL}/api/public/stats?_=${Date.now()}`);
@@ -81,7 +108,7 @@ async function fetchPublicStats() {
     renderStats(data);
   } catch (err) {
     document.getElementById('statGrid').innerHTML =
-      `<div class="loading" style="color:#d94a4a;">❌ Failed to load data: ${err.message}</div>`;
+      `<div class="loading" style="color:#d94a4a;">❌ Failed to load stats: ${err.message}</div>`;
   }
 }
 
@@ -113,8 +140,144 @@ function renderStats(s) {
   `;
 }
 
-fetchPublicStats();
-setInterval(fetchPublicStats, 300000);
+// ---- Equity Curve ----
+async function fetchEquityData() {
+  try {
+    const res = await fetch(`${RAILWAY_URL}/api/public/equity?_=${Date.now()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderEquityChart(data);
+  } catch (err) {
+    document.getElementById('equityContainer').innerHTML =
+      `<div class="loading" style="color:#d94a4a;">❌ Equity data unavailable: ${err.message}</div>`;
+  }
+}
+
+function renderEquityChart(data) {
+  const container = document.getElementById('equityContainer');
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="no-data">No equity data available yet.</div>';
+    return;
+  }
+  // Build chart canvas if not exists
+  let canvas = document.getElementById('equityChart');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'equityChart';
+    canvas.height = 200;
+    container.innerHTML = '';
+    container.appendChild(canvas);
+  }
+  const ctx = canvas.getContext('2d');
+  // Destroy previous chart instance if any
+  if (equityChart) {
+    equityChart.destroy();
+    equityChart = null;
+  }
+  equityChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.date || ''),
+      datasets: [{
+        label: 'Equity ($)',
+        data: data.map(d => parseFloat(d.equity) || 0),
+        borderColor: '#f0b429',
+        backgroundColor: 'rgba(240,180,41,0.1)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 2,
+        pointBackgroundColor: '#f0b429'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#b0c4de', font: { family: 'Rajdhani' } }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#4a5a7a', maxTicksLimit: 15 },
+          grid: { color: 'rgba(255,255,255,0.03)' }
+        },
+        y: {
+          ticks: { color: '#4a5a7a' },
+          grid: { color: 'rgba(255,255,255,0.03)' }
+        }
+      }
+    }
+  });
+}
+
+// ---- Recent Trades ----
+async function fetchRecentTrades() {
+  try {
+    const res = await fetch(`${RAILWAY_URL}/api/public/trades?limit=10&_=${Date.now()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const trades = await res.json();
+    renderTrades(trades);
+  } catch (err) {
+    document.getElementById('tradesContainer').innerHTML =
+      `<div class="loading" style="color:#d94a4a;">❌ Trades unavailable: ${err.message}</div>`;
+  }
+}
+
+function renderTrades(trades) {
+  const container = document.getElementById('tradesContainer');
+  if (!trades || trades.length === 0) {
+    container.innerHTML = '<div class="no-data">No recent trades.</div>';
+    return;
+  }
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Symbol</th>
+          <th>Type</th>
+          <th>Entry</th>
+          <th>SL</th>
+          <th>TP</th>
+          <th style="text-align:right">P&L</th>
+          <th>Strategy</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  trades.forEach(t => {
+    const pnlClass = t.profit >= 0 ? 'profit' : 'loss';
+    const sign = t.profit >= 0 ? '+' : '';
+    const typeClass = t.type === 'BUY' ? 'type-buy' : 'type-sell';
+    html += `
+      <tr>
+        <td>${t.symbol || '—'}</td>
+        <td class="${typeClass}">${t.type || '—'}</td>
+        <td>${t.entry || '—'}</td>
+        <td>${t.sl || '—'}</td>
+        <td>${t.tp || '—'}</td>
+        <td style="text-align:right" class="${pnlClass}">${sign}$${fmtNum(t.profit)}</td>
+        <td>${t.strategy || '—'}</td>
+      </tr>
+    `;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+// ---- Initial Load & Refresh ----
+async function initDashboard() {
+  // Load all sections in parallel
+  await Promise.all([
+    fetchPublicStats(),
+    fetchEquityData(),
+    fetchRecentTrades()
+  ]);
+}
+
+initDashboard();
+// Refresh every 5 minutes
+setInterval(initDashboard, 300000);
 </script>
 </body>
 </html>
